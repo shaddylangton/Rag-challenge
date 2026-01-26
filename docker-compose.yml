@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: rag-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./sessions:/app/sessions
+      - ./cache:/app/cache
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    container_name: rag-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./ui.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  rag-network:
+    driver: bridge
+    name: rag-network
+
+volumes:
+  # Named volumes for persistent data
+  rag-sessions:
+    name: rag-sessions
+  rag-cache:
+    name: rag-cache

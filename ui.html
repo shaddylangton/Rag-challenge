@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Pipeline - Document Q&A</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .section h2 {
+            color: #444;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .file-upload {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            background: #f0f0ff;
+            border-color: #764ba2;
+        }
+        
+        .file-upload input {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: transform 0.2s;
+            margin-top: 15px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .query-box {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .query-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .result-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .result-text {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .result-meta {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #888;
+        }
+        
+        .answer-box {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #388e3c;
+        }
+        
+        .answer-title {
+            font-weight: 600;
+            color: #2e7d32;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .answer-text {
+            color: #1b5e20;
+            line-height: 1.8;
+            font-size: 1.05em;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 RAG Pipeline - Document Q&A</h1>
+        <p class="subtitle">Upload documents and ask questions using hybrid retrieval (TF-IDF + Vector Embeddings)</p>
+        
+        <div id="status" class="status"></div>
+        
+        <!-- Session Info -->
+        <div class="section">
+            <h2>📊 Session Information</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="sessionId">-</div>
+                    <div class="stat-label">Session ID</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="docCount">0</div>
+                    <div class="stat-label">Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="chunkCount">0</div>
+                    <div class="stat-label">Chunks Indexed</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Step 1: Upload Documents -->
+        <div class="section">
+            <h2>📄 Step 1: Upload Documents</h2>
+            <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt" onchange="handleFiles(this.files)">
+                <p>📁 Click to select files or drag & drop</p>
+                <p style="color: #888; margin-top: 10px;">Supports: PDF, DOCX, TXT</p>
+            </div>
+            <div id="fileList" style="margin-top: 15px;"></div>
+            <button class="btn" onclick="uploadDocuments()" id="uploadBtn" disabled>Upload & Process</button>
+        </div>
+        
+        <!-- Step 2: Query -->
+        <div class="section">
+            <h2>🔍 Step 2: Ask Questions</h2>
+            <textarea class="query-box" id="queryInput" placeholder="Enter your question here...&#10;&#10;Example: 'What is the Transformer architecture?'"></textarea>
+            <button class="btn" onclick="askQuestion()" id="queryBtn" disabled>Search & Generate Answer</button>
+        </div>
+        
+        <!-- Results -->
+        <div id="results" style="display: none;">
+            <div class="section">
+                <h2>💡 Answer</h2>
+                <div id="answer"></div>
+            </div>
+            
+            <div class="section">
+                <h2>📚 Retrieved Context</h2>
+                <div id="context"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        let sessionId = null;
+        let selectedFiles = [];
+        
+        // Initialize session on load
+        window.onload = async () => {
+            await createSession();
+        };
+        
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+            statusEl.style.display = 'block';
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        async function createSession() {
+            try {
+                const response = await fetch(`${API_URL}/session/create`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                sessionId = data.session_id;
+                document.getElementById('sessionId').textContent = sessionId.substring(0, 8) + '...';
+                showStatus('✅ Session created successfully!', 'success');
+            } catch (error) {
+                showStatus('❌ Failed to create session. Is the backend running?', 'error');
+                console.error(error);
+            }
+        }
+        
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            selectedFiles.forEach(file => {
+                const fileEl = document.createElement('div');
+                fileEl.style.padding = '10px';
+                fileEl.style.background = 'white';
+                fileEl.style.borderRadius = '5px';
+                fileEl.style.marginTop = '10px';
+                fileEl.innerHTML = `📄 ${file.name} <span style="color: #888;">(${(file.size / 1024).toFixed(1)} KB)</span>`;
+                fileList.appendChild(fileEl);
+            });
+            
+            document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+        }
+        
+        async function uploadDocuments() {
+            if (!sessionId || selectedFiles.length === 0) return;
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = 'Uploading... <span class="loading"></span>';
+            
+            try {
+                // Upload each file
+                for (const file of selectedFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch(`${API_URL}/session/${sessionId}/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) throw new Error('Upload failed');
+                }
+                
+                // Process documents
+                uploadBtn.innerHTML = 'Processing... <span class="loading"></span>';
+                const processResponse = await fetch(`${API_URL}/session/${sessionId}/process`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ use_recursive: true, use_hybrid: true })
+                });
+                
+                const result = await processResponse.json();
+                
+                document.getElementById('docCount').textContent = result.documents_processed;
+                document.getElementById('chunkCount').textContent = result.chunks_created;
+                document.getElementById('queryBtn').disabled = false;
+                
+                showStatus(`✅ Processed ${result.chunks_created} chunks from ${result.documents_processed} documents!`, 'success');
+                uploadBtn.innerHTML = 'Upload & Process';
+                uploadBtn.disabled = false;
+                
+            } catch (error) {
+                showStatus('❌ Error processing documents: ' + error.message, 'error');
+                uploadBtn.innerHTML = 'Upload & Process';
+                uploadBtn.disabled = false;
+                console.error(error);
+            }
+        }
+        
+        async function askQuestion() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query || !sessionId) return;
+            
+            const queryBtn = document.getElementById('queryBtn');
+            queryBtn.disabled = true;
+            queryBtn.innerHTML = 'Searching... <span class="loading"></span>';
+            
+            try {
+                const response = await fetch(`${API_URL}/session/${sessionId}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        query: query,
+                        top_k: 5,
+                        include_citations: true
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Display answer
+                const answerEl = document.getElementById('answer');
+                answerEl.innerHTML = `
+                    <div class="answer-box">
+                        <div class="answer-title">Generated Answer:</div>
+                        <div class="answer-text">${result.answer}</div>
+                    </div>
+                `;
+                
+                // Display context (API returns 'sources' not 'retrieved_chunks')
+                const contextEl = document.getElementById('context');
+                contextEl.innerHTML = result.sources.map((source, idx) => `
+                    <div class="result-item">
+                        <div class="result-title">Chunk ${idx + 1} - ${source.source}</div>
+                        <div class="result-text">${source.full_text}</div>
+                        <div class="result-meta">
+                            Relevance: ${source.score.toFixed(3)}
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('results').style.display = 'block';
+                showStatus('✅ Query completed successfully!', 'success');
+                
+                queryBtn.innerHTML = 'Search & Generate Answer';
+                queryBtn.disabled = false;
+                
+            } catch (error) {
+                showStatus('❌ Error querying: ' + error.message, 'error');
+                queryBtn.innerHTML = 'Search & Generate Answer';
+                queryBtn.disabled = false;
+                console.error(error);
+            }
+        }
+        
+        // Allow Enter key in query box
+        document.getElementById('queryInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
