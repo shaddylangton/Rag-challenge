@@ -51,7 +51,7 @@ score = 0.3 × tfidf_score + 0.7 × cosine_similarity
 
 **Why these weights?** Tested empirically—30/70 balanced exact term matching with semantic understanding.
 
-### A+ Feature: Cross-Encoder Reranking
+###  Feature: Cross-Encoder Reranking
 
 **Problem:** Bi-encoders return "noisy" results. Query "Why scale dot-product attention?" returns 5 chunks mentioning "attention" but misses the specific explanation about gradient issues.
 
@@ -81,7 +81,7 @@ Question: {query}"""
 
 **Why:** Without this instruction, GPT-3.5 hallucinates ~40% on legal text. With grounding: ~5%.
 
-### A+ Feature: Sentence-Level Citations
+###  Feature: Sentence-Level Citations
 
 **Problem:** EU AI Act users need to know exactly where obligations come from.
 
