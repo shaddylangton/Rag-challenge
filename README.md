@@ -199,7 +199,7 @@ Question: {query}"""
 | In-scope queries | 87.5% (7/8) |
 | Out-of-scope detection | 100% (5/5 rejected) |
 
-**A+ Feature: Out-of-Domain Query Rejection**
+** Feature: Out-of-Domain Query Rejection**
 
 The system now rejects irrelevant queries automatically:
 - "What is a car?" → **REJECTED** (rerank_score: -10.5)
