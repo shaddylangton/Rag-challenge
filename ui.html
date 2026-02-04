@@ -272,6 +272,31 @@
         <!-- Step 2: Query -->
         <div class="section">
             <h2>🔍 Step 2: Ask Questions</h2>
+            
+            <!-- LLM Provider Selector -->
+            <div style="margin-bottom: 15px;">
+                <label for="llmProvider" style="font-weight: 600; color: #444; display: block; margin-bottom: 8px;">🤖 LLM Provider:</label>
+                <select id="llmProvider" onchange="toggleApiKeyInput()" style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; min-width: 200px; cursor: pointer;">
+                    <option value="mock">🧪 Mock (Fast, no API cost)</option>
+                    <option value="openai">🌐 OpenAI GPT-3.5/4</option>
+                    <option value="anthropic">🔮 Anthropic Claude</option>
+                    <option value="gemini">✨ Google Gemini</option>
+                </select>
+            </div>
+            
+            <!-- API Key Input (hidden by default) -->
+            <div id="apiKeySection" style="display: none; margin-bottom: 15px; padding: 15px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
+                <label for="apiKeyInput" style="font-weight: 600; color: #856404; display: block; margin-bottom: 8px;">🔑 API Key:</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="password" id="apiKeyInput" placeholder="Enter your API key..." 
+                           style="flex: 1; padding: 10px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                    <button onclick="toggleKeyVisibility()" style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">👁️</button>
+                </div>
+                <p style="margin-top: 8px; font-size: 0.85em; color: #856404;">
+                    <span id="apiKeyHint">Get your OpenAI key from <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></span>
+                </p>
+            </div>
+            
             <textarea class="query-box" id="queryInput" placeholder="Enter your question here...&#10;&#10;Example: 'What is the Transformer architecture?'"></textarea>
             <button class="btn" onclick="askQuestion()" id="queryBtn" disabled>Search & Generate Answer</button>
         </div>
@@ -399,13 +424,26 @@
             queryBtn.innerHTML = 'Searching... <span class="loading"></span>';
             
             try {
+                const llmProvider = document.getElementById('llmProvider').value;
+                const apiKey = document.getElementById('apiKeyInput').value.trim();
+                
+                // Validate API key for non-mock providers
+                if (llmProvider !== 'mock' && !apiKey) {
+                    showStatus('❌ Please enter an API key for ' + llmProvider.toUpperCase(), 'error');
+                    queryBtn.innerHTML = 'Search & Generate Answer';
+                    queryBtn.disabled = false;
+                    return;
+                }
+                
                 const response = await fetch(`${API_URL}/session/${sessionId}/query`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         query: query,
                         top_k: 5,
-                        include_citations: true
+                        use_citations: true,
+                        llm_provider: llmProvider,
+                        api_key: apiKey || null
                     })
                 });
                 
@@ -444,6 +482,34 @@
                 queryBtn.disabled = false;
                 console.error(error);
             }
+        }
+        
+        // Toggle API key section visibility based on provider
+        function toggleApiKeyInput() {
+            const provider = document.getElementById('llmProvider').value;
+            const apiKeySection = document.getElementById('apiKeySection');
+            const apiKeyHint = document.getElementById('apiKeyHint');
+            
+            if (provider === 'mock') {
+                apiKeySection.style.display = 'none';
+            } else {
+                apiKeySection.style.display = 'block';
+                
+                // Update hint based on provider
+                if (provider === 'openai') {
+                    apiKeyHint.innerHTML = 'Get your OpenAI key from <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>';
+                } else if (provider === 'anthropic') {
+                    apiKeyHint.innerHTML = 'Get your Anthropic key from <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>';
+                } else if (provider === 'gemini') {
+                    apiKeyHint.innerHTML = 'Get your Gemini key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>';
+                }
+            }
+        }
+        
+        // Toggle API key visibility
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKeyInput');
+            input.type = input.type === 'password' ? 'text' : 'password';
         }
         
         // Allow Enter key in query box

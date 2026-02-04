@@ -1,4 +1,4 @@
-"""
+﻿"""
 Retriever Module
 Implements both vector search (embeddings) and keyword search for document retrieval.
 
@@ -28,6 +28,40 @@ logger = logging.getLogger(__name__)
 MIN_RELEVANCE_THRESHOLD = 0.40  # Reject results below this score
 MIN_RERANK_THRESHOLD = 0.20     # Cross-encoder threshold (different scale)
 OUT_OF_DOMAIN_MESSAGE = "No relevant information found in the uploaded documents."
+# === A+ FEATURE: Stricter thresholds for short/ambiguous queries ===
+SHORT_QUERY_WORD_COUNT = 2
+SHORT_QUERY_RERANK_THRESHOLD = 1.5
+SHORT_QUERY_RELEVANCE_THRESHOLD = 0.50
+
+KNOWN_DOMAIN_ENTITIES = {
+    'attention', 'transformer', 'encoder', 'decoder', 'embeddings', 'softmax',
+    'positional', 'multi-head', 'self-attention', 'ffn', 'layernorm', 'bleu',
+    'high-risk', 'prohibited', 'gpai', 'conformity', 'annex', 'systemic',
+    'biometric', 'transparency', 'provider', 'deployer', 'foundation',
+    'scaling', 'gradients', 'training', 'inference', 'parameters'
+}
+
+
+def is_short_query(query: str) -> bool:
+    """Check if query is short (low-signal)."""
+    words = [w for w in query.strip().split() if len(w) > 1]
+    return len(words) <= SHORT_QUERY_WORD_COUNT
+
+
+def is_known_entity(query: str) -> bool:
+    """Check if query matches a known domain entity."""
+    query_lower = query.lower().strip()
+    return query_lower in KNOWN_DOMAIN_ENTITIES or any(
+        entity in query_lower for entity in KNOWN_DOMAIN_ENTITIES
+    )
+
+
+def get_query_thresholds(query):
+    """Get appropriate thresholds based on query characteristics."""
+    if is_short_query(query) and not is_known_entity(query):
+        return SHORT_QUERY_RERANK_THRESHOLD, SHORT_QUERY_RELEVANCE_THRESHOLD
+    return MIN_RERANK_THRESHOLD, MIN_RELEVANCE_THRESHOLD
+
 
 
 class KeywordRetriever:
@@ -217,7 +251,7 @@ class VectorRetriever:
         with open(metadata_file, 'wb') as f:
             pickle.dump(metadata, f)
         
-        print(f"✅ Index saved to {faiss_file} and {metadata_file}")
+        print(f"âœ… Index saved to {faiss_file} and {metadata_file}")
         
     def load_index(self, index_path: str = "faiss_index"):
         """
@@ -236,7 +270,7 @@ class VectorRetriever:
         metadata_file = str(index_path) + ".pkl"
         
         if not Path(faiss_file).exists() or not Path(metadata_file).exists():
-            print(f"⚠️  Index files not found at {index_path}")
+            print(f"âš ï¸  Index files not found at {index_path}")
             return False
         
         try:
@@ -250,11 +284,11 @@ class VectorRetriever:
             self.chunks = metadata['chunks']
             self.embeddings = metadata['embeddings']
             
-            print(f"✅ Index loaded from {faiss_file} ({len(self.chunks)} chunks)")
+            print(f"âœ… Index loaded from {faiss_file} ({len(self.chunks)} chunks)")
             return True
             
         except Exception as e:
-            print(f"❌ Error loading index: {e}")
+            print(f"âŒ Error loading index: {e}")
             return False
 
 
@@ -381,7 +415,7 @@ class HybridRetriever:
                 'chunk_vectors': self.keyword_retriever.chunk_vectors
             }, f)
         
-        print(f"✅ Hybrid index saved")
+        print(f"âœ… Hybrid index saved")
     
     def load_index(self, index_path: str = "hybrid_index"):
         """
@@ -399,7 +433,7 @@ class HybridRetriever:
         # Load keyword index
         keyword_file = f"{index_path}_keyword.pkl"
         if not Path(keyword_file).exists():
-            print(f"⚠️  Keyword index not found at {keyword_file}")
+            print(f"âš ï¸  Keyword index not found at {keyword_file}")
             return False
         
         try:
@@ -410,11 +444,11 @@ class HybridRetriever:
             self.keyword_retriever.chunks = data['chunks']
             self.keyword_retriever.chunk_vectors = data['chunk_vectors']
             
-            print(f"✅ Hybrid index loaded successfully")
+            print(f"âœ… Hybrid index loaded successfully")
             return vector_success and True
             
         except Exception as e:
-            print(f"❌ Error loading keyword index: {e}")
+            print(f"âŒ Error loading keyword index: {e}")
             return False
 
 
@@ -449,7 +483,7 @@ class CrossEncoderReranker:
         logger.info(f"Loading cross-encoder reranker: {model_name}")
         self.model = CrossEncoder(model_name)
         self.model_name = model_name
-        logger.info("✅ Reranker loaded successfully")
+        logger.info("âœ… Reranker loaded successfully")
     
     def rerank(
         self, 
@@ -492,7 +526,7 @@ class CrossEncoderReranker:
         result = reranked_chunks[:top_k]
         
         elapsed = time.time() - start_time
-        logger.info(f"Reranking: {len(chunks)} → {top_k} chunks in {elapsed:.3f}s")
+        logger.info(f"Reranking: {len(chunks)} â†’ {top_k} chunks in {elapsed:.3f}s")
         
         # Log observability metrics
         for i, chunk in enumerate(result):
@@ -624,7 +658,7 @@ class HybridRetrieverWithReranking:
         
         # Log observability
         logger.info(f"Retrieval stats: {self.last_retrieval_stats['total_latency_ms']:.1f}ms total, "
-                   f"{self.last_retrieval_stats['initial_candidates']}→{self.last_retrieval_stats['final_results']} chunks")
+                   f"{self.last_retrieval_stats['initial_candidates']}â†’{self.last_retrieval_stats['final_results']} chunks")
         
         return final_results
     
@@ -733,3 +767,5 @@ if __name__ == "__main__":
     print("Keyword Retrieval Results:")
     for result in results:
         print(f"Score: {result['score']:.4f} - {result['text'][:80]}...")
+
+

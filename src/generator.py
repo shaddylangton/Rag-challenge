@@ -72,6 +72,7 @@ class OpenAIGenerator(LLMInterface):
     """
     OpenAI API interface for text generation.
     Supports GPT-3.5, GPT-4, and other OpenAI models.
+    Compatible with OpenAI Python SDK v1.0+
     """
     
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo"):
@@ -86,8 +87,11 @@ class OpenAIGenerator(LLMInterface):
         if not self.api_key:
             print("⚠️  Warning: No API key provided. Set OPENAI_API_KEY environment variable.")
         
-        openai.api_key = self.api_key
+        # Use new OpenAI v1.0+ client
+        from openai import OpenAI
+        self.client = OpenAI(api_key=self.api_key)
         self.model = model
+        print(f"✅ OpenAI generator initialized with model: {self.model}")
     
     def generate(self, prompt: str, max_tokens: int = 500, temperature: float = 0.7) -> str:
         """
@@ -102,13 +106,82 @@ class OpenAIGenerator(LLMInterface):
             Generated text
         """
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature
             )
             return response.choices[0].message.content.strip()
+        except Exception as e:
+            return f"Error generating response: {str(e)}"
+
+
+class AnthropicGenerator(LLMInterface):
+    """
+    Anthropic Claude API interface for text generation.
+    """
+    
+    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-haiku-20240307"):
+        """
+        Initialize Anthropic generator.
+        
+        Args:
+            api_key: Anthropic API key
+            model: Model name (claude-3-haiku, claude-3-sonnet, claude-3-opus)
+        """
+        self.api_key = api_key
+        self.model = model
+        if not self.api_key:
+            raise ValueError("Anthropic API key is required")
+        print(f"✅ Anthropic generator initialized with model: {self.model}")
+    
+    def generate(self, prompt: str, max_tokens: int = 500, temperature: float = 0.7) -> str:
+        """Generate text using Anthropic API."""
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=self.api_key)
+            message = client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return message.content[0].text
+        except ImportError:
+            return "Error: anthropic library not installed. Run: pip install anthropic"
+        except Exception as e:
+            return f"Error generating response: {str(e)}"
+
+
+class GeminiGenerator(LLMInterface):
+    """
+    Google Gemini API interface for text generation.
+    """
+    
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-pro"):
+        """
+        Initialize Gemini generator.
+        
+        Args:
+            api_key: Google AI API key
+            model: Model name (gemini-pro, gemini-pro-vision)
+        """
+        self.api_key = api_key
+        self.model = model
+        if not self.api_key:
+            raise ValueError("Gemini API key is required")
+        print(f"✅ Gemini generator initialized with model: {self.model}")
+    
+    def generate(self, prompt: str, max_tokens: int = 500, temperature: float = 0.7) -> str:
+        """Generate text using Gemini API."""
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=self.api_key)
+            model = genai.GenerativeModel(self.model)
+            response = model.generate_content(prompt)
+            return response.text
+        except ImportError:
+            return "Error: google-generativeai library not installed. Run: pip install google-generativeai"
         except Exception as e:
             return f"Error generating response: {str(e)}"
 
@@ -364,10 +437,7 @@ CRITICAL REQUIREMENTS:
 2. If information comes from multiple sources, cite all of them
 3. If the context doesn't support a claim, say "Not found in provided documents"
 4. Do NOT make claims without supporting evidence from the context
-OUT-OF-SCOPE DETECTION:
-- If the question is completely unrelated to the document content (e.g., asking about cars when documents are about AI), respond:
-  "This question is not related to the provided documents. I cannot answer it based on the available context."
-- Do NOT attempt to answer questions that have no supporting evidence in the context
+
 Example format:
 "The attention mechanism uses scaled dot-product attention [Source: Attention_paper.pdf, Chunk 5]. 
 This prevents gradient issues with large key dimensions [Source: Attention_paper.pdf, Chunk 5]."
@@ -490,18 +560,30 @@ def create_generator(generator_type: str = "mock", **kwargs) -> RAGGenerator:
     Factory function to create RAG generator.
     
     Args:
-        generator_type: Type of generator ('openai', 'local', 'mock')
+        generator_type: Type of generator ('openai', 'anthropic', 'gemini', 'local', 'mock')
         **kwargs: Additional arguments for specific generators
         
     Returns:
         RAGGenerator instance
     """
-    if generator_type.lower() == "openai":
+    generator_type = generator_type.lower()
+    
+    if generator_type == "openai":
         llm = OpenAIGenerator(
             api_key=kwargs.get('api_key'),
             model=kwargs.get('model', 'gpt-3.5-turbo')
         )
-    elif generator_type.lower() == "local":
+    elif generator_type == "anthropic":
+        llm = AnthropicGenerator(
+            api_key=kwargs.get('api_key'),
+            model=kwargs.get('model', 'claude-3-haiku-20240307')
+        )
+    elif generator_type == "gemini":
+        llm = GeminiGenerator(
+            api_key=kwargs.get('api_key'),
+            model=kwargs.get('model', 'gemini-pro')
+        )
+    elif generator_type == "local":
         llm = LocalLLMGenerator(
             model_name=kwargs.get('model_name', 'google/flan-t5-base')
         )

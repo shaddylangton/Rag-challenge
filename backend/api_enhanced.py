@@ -68,6 +68,8 @@ class QueryRequest(BaseModel):
     query: str
     top_k: int = 3
     use_citations: bool = True
+    llm_provider: str = "mock"  # "openai", "anthropic", "gemini", "mock"
+    api_key: Optional[str] = None  # API key passed from frontend
 
 
 class QueryResponse(BaseModel):
@@ -350,13 +352,14 @@ async def query_session(session_id: str, request: QueryRequest):
                 citations_enabled=request.use_citations
             )
         
-        # Generate answer
-        if state['generator'] is None:
-            api_key = os.getenv('OPENAI_API_KEY')
-            generator_mode = "openai" if api_key else "mock"
-            state['generator'] = create_generator(generator_mode)
+        # Generate answer - use selected LLM provider with API key from request
+        llm_provider = request.llm_provider.lower()
+        api_key = request.api_key  # Use API key from frontend
         
-        response = state['generator'].generate_answer(
+        # Create generator based on selected provider
+        generator = create_generator(llm_provider, api_key=api_key)
+        
+        response = generator.generate_answer(
             request.query,
             retrieved_chunks,
             include_citations=request.use_citations
