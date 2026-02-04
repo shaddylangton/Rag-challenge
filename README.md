@@ -1,6 +1,6 @@
 # RAG Pipeline - DS Challenge
 
-**Live Demo:** [http://13.53.133.92:8000/ui](http://13.53.133.92)  
+**Live Demo:** [http://13.53.133.92](http://13.53.133.92)  
 **GitHub:** [https://github.com/shaddylangton/Rag-challenge](https://github.com/shaddylangton/Rag-challenge)  
 **Tech:** Python | FastAPI | FAISS | Sentence Transformers | OpenAI | AWS EC2
 
