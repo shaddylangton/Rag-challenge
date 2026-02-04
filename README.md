@@ -209,7 +209,7 @@ The system now rejects irrelevant queries automatically:
 
 **Failure Case:** "AI provider obligations" scored 0.215 (threshold: 0.38) because document uses "conformity assessments." Solution: Query expansion (future work).
 
-### A+ Feature: Dynamic Thresholds for Ambiguous Queries
+### Feature: Dynamic Thresholds for Ambiguous Queries
 
 **Problem Identified:** Single-word and two-word queries like "social" or "educational" were receiving mediocre rerank scores (0.3–0.6) and incorrectly passing the standard threshold—even when the documents contained no relevant content.
 
@@ -371,7 +371,7 @@ python test_aplus_features.py
 
 ---
 
-## A+ Features Summary
+## Features Summary
 
 | Feature | Status | Trade-off |
 |---------|--------|-----------|
