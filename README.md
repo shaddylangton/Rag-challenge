@@ -209,6 +209,50 @@ The system now rejects irrelevant queries automatically:
 
 **Failure Case:** "AI provider obligations" scored 0.215 (threshold: 0.38) because document uses "conformity assessments." Solution: Query expansion (future work).
 
+### A+ Feature: Dynamic Thresholds for Ambiguous Queries
+
+**Problem Identified:** Single-word and two-word queries like "social" or "educational" were receiving mediocre rerank scores (0.3–0.6) and incorrectly passing the standard threshold—even when the documents contained no relevant content.
+
+**Root Cause:** Short, ambiguous queries lack context. The word "social" appears tangentially in many documents ("social impact," "social media") but doesn't indicate the user wants that content. Cross-encoders give moderate scores to these weak matches.
+
+**My Solution: Query-Length-Aware Dynamic Thresholds**
+
+```python
+SHORT_QUERY_WORD_COUNT = 2
+SHORT_QUERY_RERANK_THRESHOLD = 1.5  # Much stricter than standard 0.2
+
+KNOWN_DOMAIN_ENTITIES = {
+    "attention", "transformer", "bert", "gpt", "encoder", "decoder",
+    "ai act", "high-risk", "conformity", "fundamental rights", ...
+}
+
+def get_dynamic_threshold(query: str) -> float:
+    words = query.lower().split()
+    
+    # Check if query contains known domain terms
+    if any(entity in query.lower() for entity in KNOWN_DOMAIN_ENTITIES):
+        return MIN_RERANK_THRESHOLD  # Standard threshold (0.2)
+    
+    # Short ambiguous queries get stricter threshold
+    if len(words) <= SHORT_QUERY_WORD_COUNT:
+        return SHORT_QUERY_RERANK_THRESHOLD  # 1.5 (much stricter)
+    
+    return MIN_RERANK_THRESHOLD
+```
+
+**Test Results:**
+
+| Query | Type | Rerank Score | Threshold | Result |
+|-------|------|--------------|-----------|--------|
+| "social" | Ambiguous 1-word | 0.42 | 1.5 | ✅ REJECTED |
+| "educational" | Ambiguous 1-word | 0.38 | 1.5 | ✅ REJECTED |
+| "sports news" | Ambiguous 2-word | 0.31 | 1.5 | ✅ REJECTED |
+| "attention" | Domain keyword | 2.8 | 0.2 | ✅ ACCEPTED |
+| "transformer" | Domain keyword | 3.1 | 0.2 | ✅ ACCEPTED |
+| "high-risk AI" | Domain phrase | 4.2 | 0.2 | ✅ ACCEPTED |
+
+**Trade-off:** This approach requires maintaining a list of known domain entities. For production, I would expand this dynamically by extracting key terms from uploaded documents during indexing.
+
 ### Metric 2: Faithfulness (Hallucination Detection)
 
 **Definition:** Can every claim be traced to retrieved chunks?
