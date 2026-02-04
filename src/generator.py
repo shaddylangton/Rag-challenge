@@ -364,7 +364,10 @@ CRITICAL REQUIREMENTS:
 2. If information comes from multiple sources, cite all of them
 3. If the context doesn't support a claim, say "Not found in provided documents"
 4. Do NOT make claims without supporting evidence from the context
-
+OUT-OF-SCOPE DETECTION:
+- If the question is completely unrelated to the document content (e.g., asking about cars when documents are about AI), respond:
+  "This question is not related to the provided documents. I cannot answer it based on the available context."
+- Do NOT attempt to answer questions that have no supporting evidence in the context
 Example format:
 "The attention mechanism uses scaled dot-product attention [Source: Attention_paper.pdf, Chunk 5]. 
 This prevents gradient issues with large key dimensions [Source: Attention_paper.pdf, Chunk 5]."

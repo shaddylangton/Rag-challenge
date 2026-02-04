@@ -5,6 +5,7 @@ Implements session-based architecture for multi-tenant RAG application
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
@@ -20,7 +21,7 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.document_processor import DocumentProcessor
-from src.retriever import HybridRetriever
+from src.retriever import HybridRetrieverWithReranking
 from src.generator import create_generator
 from src.evaluator import RAGEvaluator
 from src.session_manager import SessionManager
@@ -261,10 +262,11 @@ async def process_session(session_id: str):
         # Check if index already exists
         index_path = session_manager.get_index_path(session_id) / "hybrid_index"
         
-        # Initialize retriever
-        retriever = HybridRetriever(
-            keyword_weight=0.3,
-            vector_weight=0.7
+        # Initialize retriever with reranking for out-of-domain rejection
+        retriever = HybridRetrieverWithReranking(
+            keyword_weight=0.5,   # Balanced weights
+            vector_weight=0.5,
+            use_reranker=True     # Enable cross-encoder reranking
         )
         
         # Try to load existing index
@@ -325,8 +327,28 @@ async def query_session(session_id: str, request: QueryRequest):
                 detail="No documents processed. Upload and process documents first."
             )
         
-        # Retrieve relevant chunks
+        # Retrieve relevant chunks (with out-of-domain filtering)
         retrieved_chunks = state['retriever'].retrieve(request.query, top_k=request.top_k)
+        
+        # A+ FEATURE: Handle out-of-domain queries (no relevant results)
+        if not retrieved_chunks:
+            # Get retrieval stats for logging
+            stats = state['retriever'].get_observability_report()
+            return QueryResponse(
+                query=request.query,
+                answer="I couldn't find any relevant information in the uploaded documents to answer this question. "
+                       "This question may be outside the scope of the provided documents.",
+                sources=[],
+                num_sources=0,
+                evaluation={
+                    "relevance": 0.0,
+                    "faithfulness": 1.0,  # Faithful because it correctly refused
+                    "out_of_domain": True,
+                    "rejection_reason": "No chunks met relevance threshold"
+                },
+                session_id=session_id,
+                citations_enabled=request.use_citations
+            )
         
         # Generate answer
         if state['generator'] is None:
@@ -433,6 +455,15 @@ async def root():
         },
         "docs": "/docs"
     }
+
+
+@app.get("/ui", response_class=HTMLResponse)
+async def serve_ui():
+    """Serve the UI HTML file."""
+    ui_path = Path(__file__).parent.parent / "ui.html"
+    if ui_path.exists():
+        return ui_path.read_text(encoding="utf-8")
+    raise HTTPException(status_code=404, detail="UI file not found")
 
 
 if __name__ == "__main__":

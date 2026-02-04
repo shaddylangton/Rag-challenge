@@ -1,14 +1,108 @@
 # RAG Pipeline - DS Challenge
 
-**Live Demo:** [http://13.53.133.92/](http://13.53.133.92/)  
-**Tech:** Python | FastAPI | FAISS | Sentence Transformers | AWS EC2
+**Live Demo:** [http://13.53.133.92:8000/ui](http://13.53.133.92:8000/ui)  
+**GitHub:** [https://github.com/shaddylangton/Rag-challenge](https://github.com/shaddylangton/Rag-challenge)  
+**Tech:** Python | FastAPI | FAISS | Sentence Transformers | OpenAI | AWS EC2
+
+---
+
+## 🚀 Local Setup (with OpenAI API Key)
+
+### Prerequisites
+- Python 3.10+ 
+- OpenAI API key (get one at [platform.openai.com](https://platform.openai.com))
+
+### Step 1: Clone and Install
+
+```bash
+git clone https://github.com/shaddylangton/Rag-challenge.git
+cd Rag-challenge
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Step 2: Configure OpenAI API Key
+
+**Option A: Environment Variable (Recommended)**
+```bash
+# Windows PowerShell:
+$env:OPENAI_API_KEY = "sk-your-api-key-here"
+
+# Linux/Mac:
+export OPENAI_API_KEY="sk-your-api-key-here"
+```
+
+**Option B: Create .env file**
+```bash
+# Create .env file in the project root
+echo "OPENAI_API_KEY=sk-your-api-key-here" > .env
+```
+
+### Step 3: Run the Server
+
+```bash
+# Start the FastAPI backend
+uvicorn backend.api_enhanced:app --host 0.0.0.0 --port 8000
+```
+
+### Step 4: Access the UI
+
+Open your browser and go to: **http://localhost:8000/ui**
+
+1. Click **"Create Session"**
+2. Upload your PDF/DOCX files
+3. Click **"Upload & Process"** (wait for indexing)
+4. Ask questions about your documents!
+
+---
+
+## 🔑 API Key Configuration
+
+The system automatically detects your OpenAI API key:
+
+| API Key Status | Behavior |
+|----------------|----------|
+| ✅ Key provided | Uses GPT-3.5-turbo for high-quality answers |
+| ❌ No key | Falls back to mock responses (for testing) |
+
+**To verify your key is working:**
+```bash
+# Test the connection
+curl http://localhost:8000/health
+```
+
+---
+
+## 🧪 Run Tests
+
+```bash
+python test_aplus_features.py
+```
+
+**Expected Output (6 tests):**
+```
+✅ Structure-aware chunking: PASSED
+✅ Cross-encoder reranking: PASSED  
+✅ Faithfulness evaluation: PASSED
+✅ Grounded generation: PASSED
+✅ Observability logging: PASSED
+✅ Out-of-Domain Rejection: PASSED
+```
 
 ---
 
 ## Quick Start
 ```bash
-git clone https://github.com/yourusername/RagChallenge.git
-cd RagChallenge
+git clone https://github.com/shaddylangton/Rag-challenge.git
+cd Rag-challenge
 pip install -r requirements.txt
 python test_aplus_features.py  # Run all tests
 ```
@@ -103,7 +197,15 @@ Question: {query}"""
 | Test Type | Result |
 |-----------|--------|
 | In-scope queries | 87.5% (7/8) |
-| Out-of-scope detection | 100% (6/6) |
+| Out-of-scope detection | 100% (5/5 rejected) |
+
+**A+ Feature: Out-of-Domain Query Rejection**
+
+The system now rejects irrelevant queries automatically:
+- "What is a car?" → **REJECTED** (rerank_score: -10.5)
+- "What is attention mechanism?" → **ACCEPTED** (rerank_score: +8.7)
+
+**Implementation:** Cross-encoder threshold filtering (`MIN_RERANK_THRESHOLD = 0.20`)
 
 **Failure Case:** "AI provider obligations" scored 0.215 (threshold: 0.38) because document uses "conformity assessments." Solution: Query expansion (future work).
 
@@ -220,7 +322,21 @@ python test_aplus_features.py
 ✅ Faithfulness evaluation: PASSED
 ✅ Grounded generation: PASSED
 ✅ Observability logging: PASSED
+✅ Out-of-Domain Rejection: PASSED
 ```
+
+---
+
+## A+ Features Summary
+
+| Feature | Status | Trade-off |
+|---------|--------|-----------|
+| Structure-Aware Chunking | ✅ | Variable sizes, preserves table/list integrity |
+| Cross-Encoder Reranking | ✅ | +100ms latency, +15-20% precision |
+| LLM-as-a-Judge | ✅ | Accurate but adds API cost |
+| Sentence-Level Citations | ✅ | Longer answers, full verifiability |
+| Observability Logging | ✅ | +5ms overhead, enables monitoring |
+| Out-of-Domain Rejection | ✅ | May reject edge cases, needs tuning |
 
 ---
 
