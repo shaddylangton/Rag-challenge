@@ -1,0 +1,24 @@
+{
+  "session_id": "94f0eef0-0ccc-47fb-aee8-a576d2581c72",
+  "created_at": "2026-02-04T21:06:50.653394",
+  "last_accessed": "2026-02-04T21:07:16.917727",
+  "documents": [
+    {
+      "name": "Attention_is_all_you_need (1).pdf",
+      "uploaded_at": "2026-02-04T21:07:00.017309",
+      "info": {
+        "num_chunks": 91,
+        "method": "recursive"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "query": "what is transformer",
+      "timestamp": "2026-02-04T21:07:16.917707",
+      "num_sources": 5,
+      "answer_length": 353
+    }
+  ],
+  "status": "active"
+}

@@ -1,0 +1,44 @@
+{
+  "session_id": "3b29167c-b720-4804-97ca-c59fc6c14c09",
+  "created_at": "2026-02-04T21:50:55.420466",
+  "last_accessed": "2026-02-04T21:52:17.681559",
+  "documents": [
+    {
+      "name": "EU AI Act Doc (1).docx",
+      "uploaded_at": "2026-02-04T21:51:04.549612",
+      "info": {
+        "num_chunks": 31,
+        "method": "recursive"
+      }
+    },
+    {
+      "name": "Attention_is_all_you_need (1).pdf",
+      "uploaded_at": "2026-02-04T21:51:05.850527",
+      "info": {
+        "num_chunks": 91,
+        "method": "recursive"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "query": "what is a car",
+      "timestamp": "2026-02-04T21:51:20.044411",
+      "num_sources": 5,
+      "answer_length": 353
+    },
+    {
+      "query": "what is attention mechanism",
+      "timestamp": "2026-02-04T21:51:32.872652",
+      "num_sources": 5,
+      "answer_length": 353
+    },
+    {
+      "query": "what is a car",
+      "timestamp": "2026-02-04T21:52:17.681539",
+      "num_sources": 5,
+      "answer_length": 353
+    }
+  ],
+  "status": "active"
+}

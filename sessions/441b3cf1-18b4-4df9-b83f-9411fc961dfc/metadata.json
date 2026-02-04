@@ -1,0 +1,32 @@
+{
+  "session_id": "441b3cf1-18b4-4df9-b83f-9411fc961dfc",
+  "created_at": "2026-02-04T21:53:35.212810",
+  "last_accessed": "2026-02-04T21:54:11.669547",
+  "documents": [
+    {
+      "name": "EU AI Act Doc (1).docx",
+      "uploaded_at": "2026-02-04T21:53:44.544450",
+      "info": {
+        "num_chunks": 31,
+        "method": "recursive"
+      }
+    },
+    {
+      "name": "Attention_is_all_you_need (1).pdf",
+      "uploaded_at": "2026-02-04T21:53:45.737042",
+      "info": {
+        "num_chunks": 91,
+        "method": "recursive"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "query": "what is attention mechanism",
+      "timestamp": "2026-02-04T21:54:11.669522",
+      "num_sources": 5,
+      "answer_length": 353
+    }
+  ],
+  "status": "active"
+}
